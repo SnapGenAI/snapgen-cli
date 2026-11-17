@@ -1,0 +1,36 @@
+[project]
+name = "snapgen-cli"
+version = "0.1.0"
+description = "SnapGen CLI: generate images and videos with Veo, Kling, Seedance, Grok, Nano Banana and more from the terminal"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+keywords = ["snapgen", "cli", "ai", "image-generation", "video-generation", "veo", "kling", "seedance", "grok"]
+dependencies = [
+    # The SnapGen MCP server package, pinned to one commit (same as the hosted mcp.snapgen.ai). The CLI reuses its
+    # model registry, request validation and uapi client, so the CLI and the MCP tools accept exactly the same
+    # models and options. Bump the SHA to pick up new models.
+    "snapgen-mcp @ https://github.com/SnapGenAI/SnapGenAI-MCP-Model-Context-Protocol/archive/45d3b0c7dfec672eb4531c1f7eb76a4232095096.tar.gz",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "respx"]
+
+[project.urls]
+Homepage = "https://snapgen.ai"
+Documentation = "https://docs.snapgen.ai"
+
+[project.scripts]
+snapgen = "snapgen_cli.cli:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
