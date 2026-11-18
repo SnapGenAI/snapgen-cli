@@ -8,7 +8,7 @@ license-files = ["LICENSE"]
 requires-python = ">=3.10"
 keywords = ["snapgen", "cli", "ai", "image-generation", "video-generation", "veo", "kling", "seedance", "grok"]
 dependencies = [
-    # The SnapGen MCP server package, pinned to one commit (same as the hosted mcp.snapgen.ai). The CLI reuses its
+    # The SnapGen MCP server package, pinned to one commit. The CLI reuses its
     # model registry, request validation and uapi client, so the CLI and the MCP tools accept exactly the same
     # models and options. Bump the SHA to pick up new models.
     "snapgen-mcp @ https://github.com/SnapGenAI/SnapGenAI-MCP-Model-Context-Protocol/archive/45d3b0c7dfec672eb4531c1f7eb76a4232095096.tar.gz",

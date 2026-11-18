@@ -15,6 +15,7 @@ import shutil
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from snapgen_mcp import registry
 from snapgen_mcp.auth import CREATE_KEY_URL
@@ -118,12 +119,25 @@ def _cli_message(msg: str) -> str:
 
 
 # ---------------------------------------------------------------- helpers
+def _base_url(args: argparse.Namespace) -> str | None:
+    """--base-url, else the config file, else SNAPGEN_BASE_URL. The API key travels in a header, so plain http is
+    refused unless the host is this machine (a local dev server)."""
+    url = (getattr(args, "base_url", None) or config.load().get("base_url")
+           or os.environ.get("SNAPGEN_BASE_URL") or None)
+    if url:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("https", "http") or not parsed.hostname:
+            raise UsageError(f"Invalid base URL {url!r}: use https://host.")
+        if parsed.scheme == "http" and parsed.hostname not in ("localhost", "127.0.0.1", "::1"):
+            raise UsageError(f"Refusing to send your API key over plain http to {parsed.hostname}. Use https.")
+    return url
+
+
 def _client(args: argparse.Namespace) -> SnapGenClient:
     key, _ = config.resolve_api_key()
     if not key:
         raise CliAuthError(NOT_SIGNED_IN)
-    base_url = getattr(args, "base_url", None) or config.load().get("base_url")
-    return SnapGenClient(api_key=key, base_url=base_url)
+    return SnapGenClient(api_key=key, base_url=_base_url(args))
 
 
 def parse_duration(text: str) -> float:
@@ -224,7 +238,7 @@ async def cmd_auth_login(args: argparse.Namespace, out: Out) -> int:
         key = getpass.getpass("API key: ").strip()
     if not key:
         raise UsageError("No API key given.")
-    base_url = getattr(args, "base_url", None) or config.load().get("base_url")
+    base_url = _base_url(args)
     try:
         acct = await SnapGenClient(api_key=key, base_url=base_url).account()
     except SnapGenAuthError:

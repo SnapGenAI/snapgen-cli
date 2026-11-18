@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import mimetypes
+import re
 import sys
 import time
 from pathlib import Path
@@ -84,12 +85,22 @@ def result_urls(job: dict) -> list[str]:
     return [*(job.get("image_urls") or []), *(job.get("video_urls") or [])]
 
 
+_SAFE_EXT = re.compile(r"^\.[A-Za-z0-9]{1,5}$")
+_UNSAFE_NAME_CHARS = re.compile(r"[^A-Za-z0-9_-]")
+
+
 def _extension(url: str, content_type: str | None) -> str:
     suffix = Path(urlparse(url).path).suffix
-    if suffix and len(suffix) <= 5:
+    if _SAFE_EXT.match(suffix):
         return suffix
     guessed = mimetypes.guess_extension((content_type or "").split(";")[0].strip()) if content_type else None
-    return guessed or ".bin"
+    return guessed if guessed and _SAFE_EXT.match(guessed) else ".bin"
+
+
+def _safe_stem(uuid: Any) -> str:
+    """The uuid comes from the server; never let it name a path outside the download folder."""
+    stem = _UNSAFE_NAME_CHARS.sub("_", str(uuid or ""))[:80]
+    return stem or "result"
 
 
 async def download(job: dict, directory: Path) -> list[Path]:
@@ -103,7 +114,7 @@ async def download(job: dict, directory: Path) -> list[Path]:
                 if resp.status_code >= 400:
                     raise SnapGenError(f"Download failed ({resp.status_code}) for {url}")
                 suffix = f"-{n}" if len(urls) > 1 else ""
-                path = directory / f"{job['uuid']}{suffix}{_extension(url, resp.headers.get('content-type'))}"
+                path = directory / f"{_safe_stem(job.get('uuid'))}{suffix}{_extension(url, resp.headers.get('content-type'))}"
                 with path.open("wb") as fh:
                     async for chunk in resp.aiter_bytes():
                         fh.write(chunk)

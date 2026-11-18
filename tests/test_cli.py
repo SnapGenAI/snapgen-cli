@@ -243,3 +243,35 @@ def test_stray_args_rejected_for_non_generate_commands(capsys):
 @pytest.mark.parametrize("text,seconds", [("90s", 90), ("10m", 600), ("1h", 3600), ("2", 2), ("500ms", 0.5)])
 def test_parse_duration(text, seconds):
     assert cli.parse_duration(text) == seconds
+
+
+# ---------------------------------------------------------------- hardening
+def test_download_name_from_server_cannot_escape_folder(api, capsys, tmp_path):
+    evil = "../../evil"
+    api.get(API + f"/history/{UUID}").respond(json=history(2, uuid=evil, generated_video=[
+        {"video_url": "https://cdn.example/v.sh%2F..%2Fx"}]))
+    api.get(url__startswith="https://cdn.example/").respond(content=b"x")
+    out_dir = tmp_path / "out"
+    assert run(capsys, "generate", "wait", UUID, "-o", str(out_dir))[0] == 0
+    files = list(out_dir.iterdir())
+    assert [f.name for f in files] == ["______evil.bin"]
+    assert not (tmp_path / "evil.bin").exists()
+
+
+@pytest.mark.parametrize("url", ["http://api.example.com", "ftp://api.example.com", "api.example.com"])
+def test_insecure_base_url_refused_before_sending_key(api, capsys, url):
+    code, _, err = run(capsys, "account", "--base-url", url)
+    assert code == cli.EXIT_USAGE
+    assert not api.calls
+
+
+def test_http_localhost_allowed(api, capsys):
+    route = api.get("http://localhost:8080/uapi/v1/account").respond(json={"full_name": "Ada"})
+    assert run(capsys, "account", "--base-url", "http://localhost:8080")[0] == 0
+    assert route.called
+
+
+def test_insecure_base_url_from_env_refused(api, capsys, monkeypatch):
+    monkeypatch.setenv("SNAPGEN_BASE_URL", "http://evil.example")
+    assert run(capsys, "account")[0] == cli.EXIT_USAGE
+    assert not api.calls
