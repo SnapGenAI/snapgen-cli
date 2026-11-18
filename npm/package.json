@@ -1,5 +1,5 @@
 {
-  "name": "@ainnate/snapgen-cli",
+  "name": "@ainnate.co/snapgen-cli",
   "version": "0.1.0",
   "description": "SnapGen CLI: generate images and videos with Veo, Kling, Seedance, Grok, Nano Banana and more from the terminal",
   "keywords": ["snapgen", "cli", "ai", "image-generation", "video-generation", "veo", "kling", "seedance", "grok"],

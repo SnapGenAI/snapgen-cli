@@ -24,7 +24,7 @@ accept the same models and options. Every request is checked locally before anyt
 ### npm (macOS, Linux, Windows)
 
 ```bash
-npm install -g @ainnate/snapgen-cli
+npm install -g @ainnate.co/snapgen-cli
 ```
 
 Installs a prebuilt standalone binary (no Python needed) for macOS (arm64, x64), Linux (x64, arm64, glibc 2.35+)
@@ -259,7 +259,7 @@ New models come from the MCP package: add the model to its `registry.py`, then b
 2. Commit, then tag and push: `git tag v0.1.1 && git push origin v0.1.1`.
 3. The `release` workflow tests and builds the binaries on all five platforms, then creates the GitHub release with
    `checksums.txt`. With the repo variable `NPM_TRUSTED_PUBLISHING=true` (and the trusted publisher configured on
-   npmjs.com for `@ainnate/snapgen-cli`) it also publishes the npm package; otherwise run `npm publish` in `npm/`
+   npmjs.com for `@ainnate.co/snapgen-cli`) it also publishes the npm package; otherwise run `npm publish` in `npm/`
    after the release exists.
 
 ## License
