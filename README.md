@@ -21,10 +21,27 @@ accept the same models and options. Every request is checked locally before anyt
 
 ## Install
 
+### npm (macOS, Linux, Windows)
+
+```bash
+npm install -g @ainnate/snapgen-cli
+```
+
+Installs a prebuilt standalone binary (no Python needed) for macOS (arm64, x64), Linux (x64, arm64, glibc 2.35+)
+and Windows (x64; ARM via emulation). The binary is downloaded from this repo's
+[Releases](https://github.com/SnapGenAI/snapgen-cli/releases) and checked against the release's `checksums.txt`.
+
+### Manual
+
+Download the binary for your platform from [Releases](https://github.com/SnapGenAI/snapgen-cli/releases), rename it
+to `snapgen` (`snapgen.exe` on Windows) and put it on your `PATH`.
+
+### Python (pipx / uv)
+
 Requires Python 3.10+.
 
 ```bash
-pipx install git+<repo-url>        # or: uv tool install git+<repo-url>
+pipx install git+https://github.com/SnapGenAI/snapgen-cli   # or: uv tool install git+https://github.com/SnapGenAI/snapgen-cli
 ```
 
 From a checkout:
@@ -235,6 +252,15 @@ Tests run against a mocked API, so they need no key and spend no credits.
 
 New models come from the MCP package: add the model to its `registry.py`, then bump the pinned commit in
 `pyproject.toml` here.
+
+## Releasing
+
+1. Bump the version in `pyproject.toml`, `src/snapgen_cli/__init__.py` and `npm/package.json` (all three must match).
+2. Commit, then tag and push: `git tag v0.1.1 && git push origin v0.1.1`.
+3. The `release` workflow tests and builds the binaries on all five platforms, then creates the GitHub release with
+   `checksums.txt`. With the repo variable `NPM_TRUSTED_PUBLISHING=true` (and the trusted publisher configured on
+   npmjs.com for `@ainnate/snapgen-cli`) it also publishes the npm package; otherwise run `npm publish` in `npm/`
+   after the release exists.
 
 ## License
 

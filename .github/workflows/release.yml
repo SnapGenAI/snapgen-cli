@@ -1,0 +1,105 @@
+name: release
+
+# Push a tag vX.Y.Z (matching the version in pyproject.toml, src/snapgen_cli/__init__.py and npm/package.json):
+# builds a standalone binary per platform, attaches them with checksums.txt to a GitHub release, then (when the
+# repo variable NPM_TRUSTED_PUBLISHING is "true") publishes npm/ to npmjs through npm trusted publishing.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          py=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
+          init=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/snapgen_cli/__init__.py)
+          npm=$(node -p "require('./npm/package.json').version")
+          echo "tag=$tag pyproject=$py __init__=$init npm=$npm"
+          [ "$tag" = "$py" ] && [ "$tag" = "$init" ] && [ "$tag" = "$npm" ] || { echo "::error::versions differ"; exit 1; }
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: versions
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { runner: windows-latest, target: windows_amd64, ext: .exe }
+          - { runner: macos-15, target: darwin_arm64, ext: "" }
+          - { runner: macos-15-intel, target: darwin_amd64, ext: "" }
+          # Older Ubuntu = older glibc, so the binary runs on more distros.
+          - { runner: ubuntu-22.04, target: linux_amd64, ext: "" }
+          - { runner: ubuntu-22.04-arm, target: linux_arm64, ext: "" }
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install ".[dev]" pyinstaller
+      - run: python -m pytest -q
+      - name: Build
+        run: >
+          python -m PyInstaller --onefile --name snapgen --noconfirm
+          --copy-metadata snapgen-mcp --copy-metadata snapgen-cli
+          --distpath build/dist --workpath build/work --specpath build packaging/entry.py
+      - name: Smoke test
+        run: |
+          ./build/dist/snapgen${{ matrix.ext }} version
+          ./build/dist/snapgen${{ matrix.ext }} model list --kind extend
+      - name: Rename
+        run: |
+          mkdir -p out
+          cp "build/dist/snapgen${{ matrix.ext }}" "out/snapgen_${{ needs.versions.outputs.version }}_${{ matrix.target }}${{ matrix.ext }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapgen-${{ matrix.target }}
+          path: out/*
+          if-no-files-found: error
+
+  release:
+    needs: [versions, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Checksums
+        working-directory: out
+        run: sha256sum snapgen_* > checksums.txt && cat checksums.txt
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" out/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+
+  npm:
+    needs: release
+    if: vars.NPM_TRUSTED_PUBLISHING == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # npm trusted publishing (OIDC) + provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm install -g npm@latest  # trusted publishing needs npm 11.5.1+
+      - run: npm publish --access public
+        working-directory: npm

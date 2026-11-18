@@ -5,3 +5,7 @@ __pycache__/
 .env
 dist/
 build/
+npm/vendor/
+npm/README.md
+npm/LICENSE
+*.tgz

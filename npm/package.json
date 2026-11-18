@@ -1,0 +1,30 @@
+{
+  "name": "@ainnate/snapgen-cli",
+  "version": "0.1.0",
+  "description": "SnapGen CLI: generate images and videos with Veo, Kling, Seedance, Grok, Nano Banana and more from the terminal",
+  "keywords": ["snapgen", "cli", "ai", "image-generation", "video-generation", "veo", "kling", "seedance", "grok"],
+  "homepage": "https://github.com/SnapGenAI/snapgen-cli#readme",
+  "bugs": "https://github.com/SnapGenAI/snapgen-cli/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SnapGenAI/snapgen-cli.git",
+    "directory": "npm"
+  },
+  "license": "Apache-2.0",
+  "bin": {
+    "snapgen": "bin/snapgen.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js",
+    "prepack": "node -e \"for (const f of ['README.md','LICENSE']) require('fs').copyFileSync('../' + f, f)\""
+  },
+  "files": ["bin", "install.js", "README.md", "LICENSE"],
+  "os": ["darwin", "linux", "win32"],
+  "cpu": ["x64", "arm64"],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
